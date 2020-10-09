@@ -1,2 +1,12 @@
 server:
   port: 8002
+
+spring:
+  datasource:
+    driverClassName: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.3.23:3307/ldd_saas
+    username: root
+    password: My123456
+
+mybatis:
+  mapper-locations: classpath:/mapper/*Mapper.xml
