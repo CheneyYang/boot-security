@@ -1,59 +1,61 @@
 package com.iooiee.config;
 
-import com.iooiee.security.UserDetailsServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
 @Slf4j
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled=true)
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
-
+    /**
+     * 定制请求路径的授权规则
+     * @param http
+     * @throws Exception
+     */
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
-
         http
-            .authorizeRequests().antMatchers("/oauth/authorize").permitAll().and()
-            .authorizeRequests().antMatchers("/oauth/login").fullyAuthenticated().and()
-            .formLogin().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.NEVER);
+             .authorizeRequests().antMatchers("/").permitAll()// 首页所有人可以访问
+             .antMatchers("/level1/**").hasRole("vip1")
+                .antMatchers("/level2/**").hasRole("vip2")
+                .antMatchers("/level3/**").hasRole("vip3");
 
-//        registry.and()
-//                .formLogin().permitAll().and() //表单登录方式
-//                .logout().permitAll().and()
-//                .authorizeRequests().anyRequest().authenticated().and() //需要身份认证
-//                .csrf().disable()
-//                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        ;
+        //没有权限的时候，会跳转到登录的页面！
+        http.formLogin();
+
+        //开启自动配置的注销的功能
+        //路径是 /logout
+        http.logout();
+
+        // .logoutSuccessUrl("/"); 注销成功来到首页
+        http.logout().logoutSuccessUrl("/hello/index");
     }
 
-    /**
-     * 设置用户密码的加密方式为MD5加密
-     * @return
-     */
 
-
-
+    //定义认证规则
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService()).passwordEncoder(new BCryptPasswordEncoder());//加密
-        //inMemoryAuthentication 从内存中获取
-//        auth.inMemoryAuthentication().passwordEncoder(new BCryptPasswordEncoder()).withUser("xiaoming").password(new BCryptPasswordEncoder().encode("xm123456")).roles("USER");
+        //用户名的账号密码定义，在内存中定义，也可以在jdbc中去拿....
+//        auth.inMemoryAuthentication()
+//                .withUser("root").password("123456").roles("vip1","vip2","vip3").and()
+//                .withUser("admin").password("123456").roles("vip2","vip3").and()
+//                .withUser("guest").password("123456").roles("vip1","vip2");
+
+
+        //Spring security 5.0需要定义密码的加密方式
+        //要想我们的项目还能够正常登陆，需要修改一下configure中的代码。我们要将前端传过来的密码进行某种方式加密
+        //spring security 官方推荐的是使用bcrypt加密方式。
+        auth.inMemoryAuthentication().passwordEncoder(new BCryptPasswordEncoder())
+                .withUser("root").password(new BCryptPasswordEncoder().encode("123456")).roles("vip1","vip2","vip3").and()
+                .withUser("admin").password(new BCryptPasswordEncoder().encode("123456")).roles("vip2","vip3").and()
+                .withUser("guest").password(new BCryptPasswordEncoder().encode("123456")).roles("vip1","vip2");
     }
 
 }

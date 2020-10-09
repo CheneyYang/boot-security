@@ -12,4 +12,8 @@ public class HelloWordController {
     public String getAll(){
         return "请求成功";
     }
+    @GetMapping("/index")
+    public String index(){
+        return "这是首页。。。";
+    }
 }
