@@ -1,4 +1,4 @@
-package com.iooiee.config;
+package com.iooiee.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iooiee.security.UserDetailsServiceImpl;
@@ -6,12 +6,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,18 +23,31 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * security 认证核心配置
+ */
+
 @Slf4j
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled=true)
-public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
-
-
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     UserDetailsServiceImpl userDetailsServiceImpl;
 
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+
+    @Bean
+    @Override
+    public UserDetailsService userDetailsService(){
+        return super.userDetailsService();
+    }
 
     /**
      * 定制请求路径的授权规则
@@ -43,20 +58,20 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
 
         http
-             .authorizeRequests().antMatchers("/").permitAll()// 首页所有人可以访问
-             .antMatchers("/login").permitAll()
-             .antMatchers("/level1/**").hasRole("VIP1")
-             .antMatchers("/level2/**").hasRole("VIP2")
-             .antMatchers("/level3/**").hasRole("VIP3").and()
+                .authorizeRequests().antMatchers("/").permitAll()// 首页所有人可以访问
+                .antMatchers("/login").permitAll()
+                .antMatchers("/level1/**").hasRole("VIP1")
+                .antMatchers("/level2/**").hasRole("VIP2")
+                .antMatchers("/level3/**").hasRole("VIP3").and()
 
                 //前后端分离相关配置
-             .formLogin().loginProcessingUrl("/login") //loginProcessingUrl用于指定前后端分离的时候调用后台登录接口的名称
+                .formLogin().loginProcessingUrl("/login") //loginProcessingUrl用于指定前后端分离的时候调用后台登录接口的名称
                 .and()//配置登录成功的自定义处理类
 
                 /**
                  * 未登录时，进行json格式的提示,不用单独写一个又一个的类
                  */
-            .httpBasic().authenticationEntryPoint((request,response,authException) -> {
+                .httpBasic().authenticationEntryPoint((request,response,authException) -> {
             response.setContentType("application/json;charset=utf-8");
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             PrintWriter out = response.getWriter();
@@ -163,6 +178,4 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsServiceImpl).passwordEncoder(new BCryptPasswordEncoder());
     }
-
-
 }
